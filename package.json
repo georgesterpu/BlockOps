@@ -1,0 +1,31 @@
+{
+  "name": "blockops",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "scripts": {
+    "dev": "bun scripts/build.ts && bun --watch src/server.ts",
+    "preview": "bun scripts/build.ts && bun scripts/preview.ts",
+    "start": "bun src/server.ts",
+    "build": "bun scripts/build.ts",
+    "build:vercel": "bun run check:vercel && bun scripts/build.ts --vercel && next build",
+    "check": "bun node_modules/typescript/bin/tsc --noEmit",
+    "check:vercel": "bun node_modules/typescript/bin/tsc --noEmit -p tsconfig.vercel.json",
+    "test": "bun test",
+    "verify": "bun run check && bun test && bun run build"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.0.0",
+    "next": "^16.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "workflow": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "typescript": "7.0.2"
+  }
+}

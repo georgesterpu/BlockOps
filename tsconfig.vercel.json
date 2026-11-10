@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["node", "bun"], "jsx": "react-jsx" },
+  "include": ["src/**/*.ts", "app/**/*.ts", "workflows/**/*.ts", "next.config.ts"],
+  "exclude": ["node_modules", "app/.well-known"]
+}
