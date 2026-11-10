@@ -5,6 +5,16 @@ import { emailDispatch } from "./email.ts";
 import type { EmailConfig } from "./email.ts";
 import { emailAddress } from "./routing.ts";
 
+export class DeskConfigurationError extends Error {}
+
+export function operatorConfiguration(env = process.env) {
+  const { OPERATOR_PASSWORD: password, SESSION_SECRET: sessionSecret, RESIDENT_ACCESS_CODE: residentCode } = env;
+  if (!password || password.length < 16) throw new DeskConfigurationError('Set OPERATOR_PASSWORD to at least 16 characters in Vercel.');
+  if (!sessionSecret || sessionSecret.length < 32) throw new DeskConfigurationError('Set SESSION_SECRET to at least 32 characters in Vercel.');
+  if (!residentCode) throw new DeskConfigurationError('Set RESIDENT_ACCESS_CODE in Vercel.');
+  return { password, sessionSecret, residentCode };
+}
+
 export async function createRuntime(
   store: IncidentStore,
   workflow: {
@@ -14,16 +24,7 @@ export async function createRuntime(
 ) {
   const e = process.env,
     live = e.LIVE_DISPATCH === "true";
-  if (
-    !e.OPERATOR_PASSWORD ||
-    e.OPERATOR_PASSWORD.length < 16 ||
-    !e.SESSION_SECRET ||
-    e.SESSION_SECRET.length < 32 ||
-    !e.RESIDENT_ACCESS_CODE
-  )
-    throw new Error(
-      "Set OPERATOR_PASSWORD (16+ chars), SESSION_SECRET (32+ chars) and RESIDENT_ACCESS_CODE. See .env.example.",
-    );
+  const operator = operatorConfiguration(e);
   await store.init();
   const publicUrl = (
     e.PUBLIC_URL ||
@@ -37,7 +38,7 @@ export async function createRuntime(
     webhookSecret: e.RESEND_WEBHOOK_SECRET || "",
     inbox: emailAddress(e.EMAIL_INBOX || "reports@blockops.january.ie"),
     from: emailAddress(e.EMAIL_FROM || "reports@blockops.january.ie"),
-    accessCode: e.RESIDENT_ACCESS_CODE,
+    accessCode: operator.residentCode,
     publicUrl,
     live,
   };
@@ -70,9 +71,7 @@ export async function createRuntime(
     live,
     demo: e.DEMO_MODE !== "false",
     publicUrl,
-    password: e.OPERATOR_PASSWORD,
-    sessionSecret: e.SESSION_SECRET,
-    residentCode: e.RESIDENT_ACCESS_CODE,
+    ...operator,
     twilioToken: e.TWILIO_AUTH_TOKEN,
     twilioSid: e.TWILIO_ACCOUNT_SID,
     residentPhones: e.RESIDENT_PHONES?.split(",").map((x) => x.trim()),

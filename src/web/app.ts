@@ -65,6 +65,7 @@ let signedIn = false;
 let live = false;
 let inbox: string | null = null;
 let emailKeyConfigured = false;
+let setupIssue = "";
 let routing: RoutingSettings | null = null;
 let demoClock = Date.now();
 let incidents = readDemo();
@@ -319,7 +320,7 @@ function settingsPage() {
     '<div class="settings"><section class="panel"><h2>Operator access</h2>' +
     (signedIn
       ? '<button class="button secondary" data-action="logout">Sign out</button>'
-      : login || "<p>The demo uses sample data.</p>") +
+      : login || (setupIssue ? '<p role="alert">' + esc(setupIssue) + '</p>' : "<p>The demo uses sample data.</p>")) +
     "</section>" +
     '<section class="panel"><h2>Resident reporting</h2>' +
     (inbox
@@ -826,12 +827,18 @@ async function init() {
       live: boolean;
       email: string | null;
       emailKeyConfigured?: boolean;
+      setupIssue?: string;
     }>("/api/config");
     serverAvailable = config.backend;
     demo = config.demo;
     live = config.live;
     inbox = config.email;
     emailKeyConfigured = Boolean(config.emailKeyConfigured);
+    setupIssue = config.setupIssue || "";
+    if (!demo && !serverAvailable) {
+      incidents = [];
+      page = "settings";
+    }
     if (serverAvailable) {
       try {
         await loadDesk();
