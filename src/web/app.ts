@@ -328,13 +328,15 @@ function settingsPage() {
       : signedIn && emailKeyConfigured ? '<p><button class="button primary" data-action="connect-email">Connect Resend</button></p>' : "") +
     '<p class="error" role="alert"></p></div><button class="button secondary" data-action="copy-link">Copy report link</button></section>' +
     (signedIn && routing
-      ? '<section class="panel wide"><h2>Email routing</h2><form id="routing-form"><fieldset><div class="fields">' +
+      ? '<section class="panel wide"><h2>Email routing</h2>' +
+        (inbox && !live ? "<p>Pilot mode sends resident receipts. Duty manager and contractor notifications are simulated.</p>" : "") +
+        '<form id="routing-form"><fieldset><div class="fields">' +
         '<label>Duty manager email<input name="managerEmail" type="email" value="' +
         esc(routing.managerEmail) +
         '"></label>' +
-        '<label>Enrolled residents<textarea name="residentEmails" rows="3" placeholder="One email per line">' +
+        '<label>Enrolled residents<textarea name="residentEmails" rows="3" placeholder="One email per line" aria-describedby="resident-email-help">' +
         esc(routing.residentEmails.join("\n")) +
-        "</textarea></label></div>" +
+        '</textarea><small id="resident-email-help">Email reports must come from an address on this list.</small></label></div>' +
         '<details><summary>Approved contractors</summary><div class="fields">' +
         fields +
         "</div></details>" +

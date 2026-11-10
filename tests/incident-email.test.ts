@@ -56,7 +56,7 @@ function event(id: string, valid = true) {
   });
 }
 
-test('signed inbound email records one incident, acknowledges it and offers the configured trade', async () => {
+test.each([true, false])('signed inbound email records once and replies in both dispatch modes', async (live) => {
   const db = new LocalSql(':memory:');
   const store = new Store(db);
   await store.init();
@@ -77,8 +77,9 @@ test('signed inbound email records one incident, acknowledges it and offers the 
     throw new Error('Unexpected network request');
   }) as typeof fetch;
   try {
-    const dispatch = emailDispatch(store, email, async () => { throw new Error('No approved email recipient'); });
-    const handle = api({ store, email, dispatch, publicUrl: url, live: true, demo: false, password: 'operator-test-password', sessionSecret: 'unit-test-session-secret-long-enough', residentCode: email.accessCode });
+    const config = { ...email, live };
+    const dispatch = emailDispatch(store, config, async () => { throw new Error('No approved email recipient'); });
+    const handle = api({ store, email: config, dispatch, publicUrl: url, live, demo: false, password: 'operator-test-password', sessionSecret: 'unit-test-session-secret-long-enough', residentCode: email.accessCode });
     const post = (path: string, body: unknown, cookie?: string) => handle(new Request(`${url}${path}`, {
       method: 'POST', body: JSON.stringify(body), headers: cookie ? { cookie } : undefined,
     }));
@@ -91,7 +92,9 @@ test('signed inbound email records one incident, acknowledges it and offers the 
     expect((await handle(event('email_test_123'))).status).toBe(202);
     expect((await handle(event('email_test_123'))).status).toBe(202);
     expect(fetched).toBe(1);
-    expect(mail.map(message => message.to[0])).toEqual(['resident@example.test', 'fire@example.test']);
+    expect(mail.map(message => message.to[0])).toEqual(live
+      ? ['resident@example.test', 'fire@example.test']
+      : ['resident@example.test']);
     expect(mail.every(message => !message.text.includes(email.accessCode))).toBe(true);
     expect(mail[0].text).toContain('112 or 999');
     const [incident] = await store.list();
@@ -100,7 +103,7 @@ test('signed inbound email records one incident, acknowledges it and offers the 
     const acceptance = { id: incident.id, contractorId: incident.contractorId, token: incident.acknowledgementToken };
     expect((await post('/api/accept', acceptance)).status).toBe(200);
     expect((await post('/api/accept', acceptance)).status).toBe(200);
-    expect(mail).toHaveLength(3);
+    expect(mail).toHaveLength(live ? 3 : 2);
     expect((await store.get(incident.id))?.status).toBe('accepted');
   } finally {
     globalThis.fetch = previousFetch;

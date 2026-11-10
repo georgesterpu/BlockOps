@@ -138,6 +138,7 @@ export function api(config: ApiConfig) {
             503,
           );
         }
+        console.info("BlockOps accepted a signed Resend event.");
         return json({ received: true }, 202);
       }
       if (path === "/api/login" && method === "POST") {

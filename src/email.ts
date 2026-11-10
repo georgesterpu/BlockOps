@@ -127,11 +127,16 @@ export async function receiveEmail(store: IncidentStore, config: EmailConfig, id
   const email = await response.json() as ReceivedEmail;
   const sender = emailAddress(email.from || '');
   const routing = await getRouting(store);
-  if (!sender || sender === config.from || !routing.residentEmails.includes(sender) || !email.to?.some(address => emailAddress(address) === config.inbox)) return null;
+  if (!sender || sender === config.from || !email.to?.some(address => emailAddress(address) === config.inbox)) return null;
+  if (!routing.residentEmails.includes(sender)) {
+    console.info('BlockOps ignored a report from an unenrolled sender.');
+    return null;
+  }
   const autoSubmitted = Object.entries(email.headers || {}).find(([key]) => key.toLowerCase() === 'auto-submitted')?.[1];
   if (autoSubmitted && autoSubmitted.toLowerCase() !== 'no') return null;
   const report = interpretEmail(email, config, routing.automaticOffers);
   const incident = await store.create(createIncident(report, crypto.randomUUID(), crypto.randomUUID()), receipt);
+  console.info('BlockOps recorded an email report.');
   return incident.id;
 }
 
@@ -166,6 +171,10 @@ export function emailDispatch(store: IncidentStore, config: EmailConfig, fallbac
       body: JSON.stringify({ from: `BlockOps <${config.from}>`, to: [to], subject, text, reply_to: config.inbox, headers }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok) throw new Error(`Resend delivery failed (${response.status}).`);
+    if (!response.ok) {
+      console.warn('Resend declined a BlockOps notification.', { kind: delivery.kind, status: response.status });
+      throw new Error(`Resend delivery failed (${response.status}).`);
+    }
+    console.info('Resend accepted a BlockOps notification.', { kind: delivery.kind });
   };
 }
