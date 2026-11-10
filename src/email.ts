@@ -157,7 +157,9 @@ export function emailDispatch(store: IncidentStore, config: EmailConfig, fallbac
       `Shoreside Commons, Sea Gardens, Bray`,
       `${categoryNames[incident.category]} · ${incident.location} · ${incident.priority}`,
       incident.description,
-      delivery.kind === 'offer' ? `Accept before ${new Date(incident.dueAt!).toISOString()}: ${accept.href}` : 'Human follow-up is required.',
+      delivery.kind === 'offer'
+        ? `Please attend the property and inspect the reported fault. If you can attend, accept the call-out before ${new Date(incident.dueAt!).toISOString()}.\n${accept.href}`
+        : 'Human follow-up is required.',
       emergencyGuidance,
     ].join('\n\n');
     const headers: Record<string, string> = { 'Auto-Submitted': 'auto-replied' };

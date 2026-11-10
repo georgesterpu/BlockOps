@@ -111,6 +111,57 @@ test.each([true, false])('signed inbound email records once and replies in both 
   }
 });
 
+test('approving a plumbing report from the web form emails the approved contractor', async () => {
+  const db = new LocalSql(':memory:');
+  const store = new Store(db);
+  await store.init();
+  const previousFetch = globalThis.fetch;
+  const mail: Array<{ to: string[]; subject: string; text: string }> = [];
+  globalThis.fetch = (async (input, init) => {
+    const request = new Request(input, init);
+    expect(request.url).toBe('https://api.resend.com/emails');
+    expect(request.method).toBe('POST');
+    mail.push(await request.json() as typeof mail[number]);
+    return Response.json({ id: `test-${mail.length}` });
+  }) as typeof fetch;
+  try {
+    const dispatch = emailDispatch(store, email, async () => { throw new Error('No approved email recipient'); });
+    const handle = api({ store, email, dispatch, publicUrl: url, live: true, demo: false, password: 'operator-test-password', sessionSecret: 'unit-test-session-secret-long-enough', residentCode: email.accessCode });
+    const login = await handle(new Request(`${url}/api/login`, {
+      method: 'POST', body: JSON.stringify({ password: 'operator-test-password' }),
+    }));
+    const cookie = login.headers.get('set-cookie')!.split(';')[0];
+    const settings = await handle(new Request(`${url}/api/settings`, {
+      method: 'POST', headers: { cookie },
+      body: JSON.stringify({ managerEmail: 'manager@example.test', residentEmails: [], contractorEmails: { 'water-primary': 'plumber@example.test' }, automaticOffers: false }),
+    }));
+    expect(settings.status).toBe(200);
+    const report = await handle(new Request(`${url}/api/reports`, {
+      method: 'POST', headers: { 'idempotency-key': 'web-plumbing-test' },
+      body: JSON.stringify({ category: 'water', location: 'Block B lobby', description: 'The lobby sink is leaking.', danger: false, accessCode: email.accessCode }),
+    }));
+    expect(report.status).toBe(201);
+    const [incident] = await store.list();
+    expect(incident.status).toBe('escalated');
+    expect(mail.map(message => message.to)).toEqual([['manager@example.test']]);
+
+    const approval = await handle(new Request(`${url}/api/incidents/${incident.id}/dispatch`, {
+      method: 'POST', headers: { cookie },
+    }));
+    expect(approval.status).toBe(200);
+    expect(mail.map(message => message.to)).toEqual([['manager@example.test'], ['plumber@example.test']]);
+    const offer = mail[1];
+    expect(offer.subject).toBe(`Call-out offer [${incident.reference}]`);
+    expect(offer.text).toContain('Please attend the property and inspect the reported fault.');
+    expect(offer.text).toContain('The lobby sink is leaking.');
+    expect(offer.text).toContain('Block B lobby');
+    expect(offer.text).toContain('#accept=');
+  } finally {
+    globalThis.fetch = previousFetch;
+    db.db.close();
+  }
+});
+
 test('unclear or hazardous emails are routed for human review even with an access code', () => {
   const sender = { from: 'resident@example.test', to: [email.inbox] };
   expect(interpretEmail({ ...sender, text: 'Smoke in Block B lobby.\nCode: test-resident-code' }, email, true).reviewRequired).toBe(true);
