@@ -7,17 +7,27 @@ const documentPath = () =>
     ? "desk/v1.json"
     : "preview/desk-v1.json";
 
+function readDeskDocument() {
+  return get(documentPath(), {
+    access: "private",
+    useCache: false,
+    // Compressed responses have a weak ETag that conditional writes cannot use.
+    headers: { "accept-encoding": "identity" },
+    abortSignal: AbortSignal.timeout(10_000),
+  });
+}
+
 function cloudStore() {
   return new BlobStore({
     async read() {
       try {
-        const result = await get(documentPath(), {
-          access: "private",
-          useCache: false,
-          abortSignal: AbortSignal.timeout(10_000),
-        });
+        const result = await readDeskDocument();
         if (!result) return null;
         if (!result.stream) throw new Error("Missing private Blob body.");
+        if (!result.blob.etag || result.blob.etag.startsWith("W/")) {
+          await result.stream.cancel();
+          throw new Error("Missing strong ETag for private Blob.");
+        }
         return {
           content: await new Response(result.stream).text(),
           etag: result.blob.etag,
@@ -38,15 +48,13 @@ function cloudStore() {
         return true;
       } catch (cause) {
         if (cause instanceof BlobPreconditionFailedError) return false;
-        if (
-          !etag &&
-          (await get(documentPath(), {
-            access: "private",
-            useCache: false,
-            abortSignal: AbortSignal.timeout(10_000),
-          }))
-        )
-          return false;
+        if (!etag) {
+          const existing = await readDeskDocument();
+          if (existing) {
+            await existing.stream?.cancel();
+            return false;
+          }
+        }
         throw new Error("Database write failed.", { cause });
       }
     },

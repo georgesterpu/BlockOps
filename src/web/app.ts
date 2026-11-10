@@ -322,13 +322,13 @@ function settingsPage() {
       ? '<button class="button secondary" data-action="logout">Sign out</button>'
       : login || (setupIssue ? '<p role="alert">' + esc(setupIssue) + '</p>' : "<p>The demo uses sample data.</p>")) +
     "</section>" +
-    '<section class="panel"><h2>Resident reporting</h2>' +
+    '<section class="panel"><h2>Resident reporting</h2><div id="email-connection">' +
     (inbox
       ? '<p><a href="mailto:' + esc(inbox) + '">' + esc(inbox) + "</a></p>"
       : signedIn && emailKeyConfigured ? '<p><button class="button primary" data-action="connect-email">Connect Resend</button></p>' : "") +
-    '<button class="button secondary" data-action="copy-link">Copy report link</button></section>' +
+    '<p class="error" role="alert"></p></div><button class="button secondary" data-action="copy-link">Copy report link</button></section>' +
     (signedIn && routing
-      ? '<section class="panel wide"><h2>Email routing</h2><form id="routing-form"><div class="fields">' +
+      ? '<section class="panel wide"><h2>Email routing</h2><form id="routing-form"><fieldset><div class="fields">' +
         '<label>Duty manager email<input name="managerEmail" type="email" value="' +
         esc(routing.managerEmail) +
         '"></label>' +
@@ -340,8 +340,8 @@ function settingsPage() {
         "</div></details>" +
         '<label class="choice"><input type="checkbox" name="automaticOffers" ' +
         (routing.automaticOffers ? "checked" : "") +
-        "> Allow automatic offers for eligible reports</label>" +
-        '<p class="error" role="alert"></p><button class="button primary">Save routing</button></form></section>'
+        "> Allow automatic offers for eligible reports</label></fieldset>" +
+        '<p class="error" role="alert"></p><div class="routing-actions"><button type="submit" class="button primary">Save settings</button><span role="status" class="save-status"></span></div></form></section>'
       : "") +
     '<section class="panel wide utility">' +
     '<button class="button secondary" data-action="export">Export incidents</button>' +
@@ -670,10 +670,21 @@ function bindPage() {
       }
     };
   const form = app.querySelector<HTMLFormElement>("#routing-form");
-  if (form)
+  if (form) {
+    const status = form.querySelector<HTMLElement>(".save-status")!;
+    const fields = form.querySelector("fieldset")!;
+    const save = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    form.oninput = () => {
+      form.querySelector(".error")!.textContent = "";
+      status.textContent = "Unsaved changes";
+    };
     form.onsubmit = async (event) => {
       event.preventDefault();
       const data = new FormData(form);
+      fields.disabled = true;
+      save.disabled = true;
+      form.querySelector(".error")!.textContent = "";
+      status.textContent = "Saving…";
       try {
         routing = await request("/api/settings", {
           managerEmail: data.get("managerEmail"),
@@ -686,24 +697,36 @@ function bindPage() {
           ),
           automaticOffers: data.has("automaticOffers"),
         });
-        toast("Routing saved.");
+        status.textContent = "Settings saved";
       } catch (error) {
+        status.textContent = "";
         showError(form, error);
+      } finally {
+        fields.disabled = false;
+        save.disabled = false;
       }
     };
+  }
 }
 
 async function act(action: string, button: HTMLButtonElement) {
   if (action === "report") return report();
   if (action === "connect-email") {
+    const connection = button.closest<HTMLElement>("#email-connection")!;
+    connection.querySelector(".error")!.textContent = "";
     button.disabled = true;
+    button.textContent = "Connecting…";
     try {
       const result = await request<{ email: string }>("/api/settings/email", {});
       inbox = result.email;
-      render();
+      connection.innerHTML = '<p><a href="mailto:' + esc(inbox) + '">' + esc(inbox) + "</a></p>";
+      connection.querySelector("a")?.focus();
       toast("Email connected.");
-    } catch (error) { toast((error as Error).message); }
-    finally { button.disabled = false; }
+    } catch (error) {
+      showError(connection, error);
+      button.disabled = false;
+      button.textContent = "Connect Resend";
+    }
     return;
   }
   if (action === "advance") {

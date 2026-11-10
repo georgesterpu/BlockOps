@@ -348,7 +348,15 @@ export function api(config: ApiConfig) {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Request failed.";
-      if (/Database|concurrently|fetch|SQLITE|Workflow/i.test(message))
+      if (/Database|concurrently|fetch|SQLITE|Workflow/i.test(message)) {
+        if (method === "POST" && path === "/api/settings")
+          return json({ error: "Settings could not be saved. Try saving again." }, 503);
+        if (method === "POST" && path === "/api/settings/email")
+          return json({
+            error: /fetch/i.test(message)
+              ? "BlockOps could not reach Resend. Try connecting again."
+              : "BlockOps could not save the Resend connection. Try connecting again.",
+          }, 503);
         return json(
           {
             error:
@@ -356,6 +364,7 @@ export function api(config: ApiConfig) {
           },
           503,
         );
+      }
       return json({ error: message }, 400);
     }
   };

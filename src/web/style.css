@@ -430,6 +430,23 @@ h1 {
   align-items: center;
   gap: 8px;
 }
+#routing-form fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.routing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.save-status {
+  color: var(--muted);
+  font-size: 13px;
+}
 .fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -524,6 +541,9 @@ textarea {
 .error {
   color: #97242a;
   font-size: 13px;
+}
+.panel .error {
+  color: #97242a;
 }
 .error:empty {
   display: none;
