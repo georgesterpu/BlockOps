@@ -33,4 +33,15 @@ An email with `Location: Block B lobby` is sufficient for location extraction. I
 
 Agree the overnight roster and call-out authority before setting `LIVE_DISPATCH=true`. Email offers have a five-minute acceptance window. The workflow tries the backup and then the duty manager. Email delivery alone cannot guarantee an immediate response. Use the optional signed dispatch webhook for an agreed SMS or phone notification channel.
 
-The optional Twilio handlers accept verified direct messages and phone reports at `/api/twilio/whatsapp` and `/api/twilio/voice`. These require a configured provider account and enrolled numbers. They are independent of the email pilot.
+## WhatsApp direct messages
+
+BlockOps uses [Vercel Chat SDK's official WhatsApp adapter](https://chat-sdk.dev/adapters/official/whatsapp) with Meta's WhatsApp Business Cloud API. Use Meta's test number for the first phone test. A residents' group can pin a link that opens a private chat with the BlockOps number.
+
+1. Create a Meta Business app, add WhatsApp, and add your personal phone as a test recipient.
+2. In Vercel, set `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` from WhatsApp API Setup, and `WHATSAPP_APP_SECRET` from App Settings. Generate a random `WHATSAPP_VERIFY_TOKEN` and set `WHATSAPP_RESIDENT_PHONES` to enrolled numbers in international format, separated by commas.
+3. Redeploy. In Meta's WhatsApp Configuration, set the callback to `https://blockops-mu.vercel.app/api/webhooks/whatsapp`, enter the same verify token, and subscribe to `messages`. For production, use a dedicated sender and a system-user token.
+4. Send a DM containing `Location: Block B lobby` on its own line followed by a description of the fault. BlockOps replies with the incident reference. If the location or description is missing, BlockOps asks the resident to resend both together.
+
+WhatsApp reports use the same incident desk and email dispatch workflow. Potential life-safety reports go to duty manager review. Other reports can trigger automatic offers when enabled and an approved primary contractor is configured. For the first test, use a test contact and mark the report clearly as a test.
+
+The legacy Twilio webhook routes are also available for deployments already using them.

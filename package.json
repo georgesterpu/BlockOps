@@ -16,7 +16,10 @@
     "verify": "bun run check && bun test && bun run build"
   },
   "dependencies": {
+    "@chat-adapter/state-memory": "4.44.0",
+    "@chat-adapter/whatsapp": "4.44.0",
     "@vercel/blob": "^2.0.0",
+    "chat": "4.44.0",
     "next": "^16.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
