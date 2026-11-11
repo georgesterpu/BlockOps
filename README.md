@@ -1,21 +1,81 @@
 # BlockOps
 
-BlockOps is a residential incident desk for Shoreside Commons in Bray. Residents can report a fault by email or a web form. The desk records triage, offers, acceptance deadlines and manager follow-up.
+BlockOps helps residents report building faults and helps property managers organise a response, day or night.
 
-The browser preview uses sample incidents and responders. The hosted pilot accepts reports from enrolled residents. Contractor offers require approved contacts and explicit activation. If there is fire, smoke or immediate danger, follow the building emergency plan and call 112 or 999. BlockOps is a maintenance coordination prototype.
+It started at **Shoreside Commons, Sea Gardens, Bray**, where recurring fire alarm panel faults highlighted the need for a clear way to report an issue out of hours and reach someone who can help.
 
-## Local preview
+[Open BlockOps](https://blockops-mu.vercel.app/) · [Try the local demo](#try-the-demo) · [Deployment guide](#vercel-email-pilot)
 
-Use Bun and TypeScript 7.
+![The BlockOps incident desk showing three sample faults, their locations and response status](docs/screenshots/incident-desk.png)
+
+*Screenshots use demo incidents and fictional contractors.*
+
+## How it works
+
+1. **Report a fault.** Residents use the web form or send an email. The WhatsApp integration accepts direct text messages once a Meta sender is connected.
+2. **Choose the response.** A duty manager can approve a contractor offer. Eligible reports can also be routed automatically when configured.
+3. **Reach the right person.** The approved contractor receives an email with the fault, location and a link to accept the call-out. If the primary contractor does not accept within five minutes, the workflow tries the backup, then escalates to the duty manager.
+4. **Follow the incident.** The desk keeps an activity history of reports, offers, acceptance and resolution.
+
+<details>
+<summary>See reporting, incident activity, escalation and the mobile view</summary>
+
+### Reporting an issue
+
+![A demo plumbing report with the fault description and location entered](docs/screenshots/report-an-issue.png)
+
+### Following the response
+
+![An incident drawer showing its status, assigned sample contractor and activity history](docs/screenshots/incident-activity.png)
+
+### Contractor escalation
+
+![The demo workflow showing primary contractor, backup contractor and duty manager escalation](docs/screenshots/dispatch-workflow.png)
+
+### On your phone
+
+<img src="docs/screenshots/mobile-desk.png" alt="The BlockOps incident desk on a narrow mobile screen" width="320">
+
+</details>
+
+## Try the demo
+
+You need [Bun](https://bun.sh/). The project uses TypeScript 7.
 
 ```sh
+git clone https://github.com/georgesterpu/BlockOps.git
+cd BlockOps
 bun install
 bun run preview
 ```
 
-Open `http://localhost:3000`. Try **Report an issue** and use **Agent workflow → Advance 5 minutes** to see the next escalation. The preview saves changes in your browser.
+Open `http://localhost:3000` and explore the sample incidents.
 
-For the local server with SQLite, copy `.env.example` to `.env`, choose a desk password, session secret and resident access code, then run `bun run dev`. Use **Settings & setup** to sign in and set routing. `bun run verify` runs TypeScript checks, the incident tests and the browser asset build.
+- Open a fault to see its activity and simulate contractor acceptance.
+- Use **Report issue** to add your own sample report.
+- Open **Workflow** and choose **Advance 5 minutes** to try the escalation sequence.
+
+The demo keeps its changes in your browser and simulates notifications. The hosted app provides the incident desk for signed-in operators and a reporting form for residents.
+
+## Built with
+
+| Part | Technology |
+| --- | --- |
+| Development | Bun and TypeScript 7 |
+| Hosted API | Next.js on Vercel |
+| Dispatch and escalation | Vercel Workflow SDK |
+| WhatsApp direct messages | Vercel Chat SDK and Meta WhatsApp Cloud API |
+| Email reports and call-out offers | Resend |
+| Hosted incident data and settings | Private Vercel Blob storage in Dublin |
+| Local server storage | SQLite |
+
+To run the local server with SQLite, copy `.env.example` to `.env`, choose a desk password, session secret and resident access code, then run `bun run dev`. Open **Settings** to sign in and configure routing. Run `bun run verify` for the TypeScript checks, tests and browser asset build.
+
+## Using BlockOps
+
+BlockOps is a maintenance coordination prototype. A property needs approved contractors, an agreed duty roster and call-out authority before enabling live dispatch.
+
+**For fire, smoke or immediate danger, follow the building emergency plan and call 112 or 999.** An email or a recorded ticket cannot confirm that help is attending.
 
 ## Vercel email pilot
 
@@ -45,3 +105,7 @@ BlockOps uses [Vercel Chat SDK's official WhatsApp adapter](https://chat-sdk.dev
 WhatsApp reports use the same incident desk and email dispatch workflow. Potential life-safety reports go to duty manager review. Other reports can trigger automatic offers when enabled and an approved primary contractor is configured. For the first test, use a test contact and mark the report clearly as a test.
 
 The legacy Twilio webhook routes are also available for deployments already using them.
+
+## Get involved
+
+Feedback from residents, property managers and contractors is welcome. Try the demo and [open an issue](https://github.com/georgesterpu/BlockOps/issues) with a confusing interaction, a missing step or an idea that would make an overnight incident easier to handle. Use fictional details when sharing examples.
